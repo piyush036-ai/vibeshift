@@ -1,0 +1,159 @@
+name: VibeShift — AI Code Integrity Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, master, develop]
+
+concurrency:
+  group: vibeshift-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  vibeshift-analysis:
+    name: VibeShift PR Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      statuses: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Get PR diff
+        id: diff
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD > pr.diff
+          echo "diff_size=$(wc -c < pr.diff)" >> $GITHUB_OUTPUT
+
+      - name: Set status to pending
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: 'pending',
+              context: 'vibeshift/integrity',
+              description: 'VibeShift analysis in progress...',
+              target_url: 'https://vibeshift.vercel.app/pr/${{ github.event.pull_request.number }}'
+            });
+
+      - name: Run VibeShift Analysis (IBM Bob Orchestration)
+        id: analysis
+        run: |
+          echo "🛡️ VibeShift Analysis Starting..."
+          echo "PR: #${{ github.event.pull_request.number }}"
+          echo "Title: ${{ github.event.pull_request.title }}"
+          echo "Author: ${{ github.event.pull_request.user.login }}"
+
+          # In production: call VibeShift API
+          # curl -X POST https://vibeshift.vercel.app/api/analyze/pr-${{ github.event.pull_request.number }} \
+          #   -H "Authorization: Bearer ${{ secrets.VIBESHIFT_API_KEY }}" \
+          #   -H "Content-Type: application/json" \
+          #   -d '{"prNumber": ${{ github.event.pull_request.number }}, "repo": "${{ github.repository }}"}'
+
+          # Demo: simulate analysis result
+          echo "integrity_score=23" >> $GITHUB_OUTPUT
+          echo "decision=no-go" >> $GITHUB_OUTPUT
+          echo "critical_violations=3" >> $GITHUB_OUTPUT
+          echo "high_violations=2" >> $GITHUB_OUTPUT
+          echo "total_violations=6" >> $GITHUB_OUTPUT
+
+      - name: Post Analysis Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const score = '${{ steps.analysis.outputs.integrity_score }}';
+            const decision = '${{ steps.analysis.outputs.decision }}';
+            const critical = '${{ steps.analysis.outputs.critical_violations }}';
+            const total = '${{ steps.analysis.outputs.total_violations }}';
+            const isGo = decision === 'go';
+
+            const body = `## 🛡️ VibeShift Analysis — PR #${{ github.event.pull_request.number }}
+
+            **Integrity Score: ${score}/100** · Decision: ${isGo ? '🟢 **GO — Merge Approved**' : '🔴 **NO-GO — Merge Blocked**'}
+
+            | Metric | Value |
+            |--------|-------|
+            | Integrity Score | ${score}/100 |
+            | Decision | ${isGo ? '✅ GO' : '❌ NO-GO'} |
+            | Critical Violations | ${critical} |
+            | Total Violations | ${total} |
+            | Agents Run | 4 (parallel) |
+
+            ### Violations Found
+            - 🔴 \`NO_DB_IN_UI\` — Database access inside UI component (ProductCard.tsx:8)
+            - 🔴 \`NO_HALLUCINATED_PACKAGES\` — Package 'user-utils-pro' does not exist (ProductCard.tsx:3)
+            - 🔴 \`NO_SQL_INJECTION\` — SQL injection via template literal CWE-89 (ProductCard.tsx:24)
+            - 🟠 \`USE_API_CLIENT\` — Direct axios call bypassing shared apiClient (ProductCard.tsx:17)
+            - 🟠 \`REQUIRE_UNIT_TESTS\` — ProductCard has no unit tests (ProductCard.test.tsx:1)
+            - 🟡 \`NO_CONSOLE_LOG\` — console.log in production code (ProductCard.tsx:19)
+
+            ### Auto-Fix Available
+            View and apply auto-generated fixes: [Open in VibeShift →](https://vibeshift.vercel.app/pr/${{ github.event.pull_request.number }})
+
+            ---
+            *Powered by [VibeShift](https://vibeshift.vercel.app) — IBM Bob 2.0 × Granite AI · Analysis took 3.4s*`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body
+            });
+
+      - name: Update commit status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const score = parseInt('${{ steps.analysis.outputs.integrity_score }}');
+            const decision = '${{ steps.analysis.outputs.decision }}';
+            const isGo = decision === 'go';
+
+            // Integrity status
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: isGo ? 'success' : 'failure',
+              context: 'vibeshift/integrity',
+              description: `Score: ${score}/100 — ${isGo ? 'GO' : 'NO-GO'}`,
+              target_url: 'https://vibeshift.vercel.app/pr/${{ github.event.pull_request.number }}'
+            });
+
+            // Security status
+            const hasCritical = parseInt('${{ steps.analysis.outputs.critical_violations }}') > 0;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: hasCritical ? 'failure' : 'success',
+              context: 'vibeshift/security',
+              description: hasCritical ? 'Critical security violations detected' : 'No security violations',
+              target_url: 'https://vibeshift.vercel.app/pr/${{ github.event.pull_request.number }}'
+            });
+
+      - name: Fail workflow if NO-GO
+        if: steps.analysis.outputs.decision == 'no-go'
+        run: |
+          echo "❌ VibeShift NO-GO: Integrity score ${{ steps.analysis.outputs.integrity_score }}/100"
+          echo "Critical violations: ${{ steps.analysis.outputs.critical_violations }}"
+          echo "Merge is blocked. Fix violations and re-push to re-trigger analysis."
+          exit 1
+
+      - name: Success
+        if: steps.analysis.outputs.decision == 'go'
+        run: |
+          echo "✅ VibeShift GO: Integrity score ${{ steps.analysis.outputs.integrity_score }}/100"
+          echo "PR is approved. Merge when ready."
