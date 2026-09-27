@@ -1,223 +1,302 @@
-#  VibeShift — AI Code Integrity Gate
+# 🛡️ VibeShift — AI Code Integrity Gate
 
-> **Stop AI-Induced Architectural Drift before it merges.**
+> **Stop AI-induced architectural drift before it merges.**
 
-VibeShift is an enterprise-grade AI guardrail for AI-assisted development. It learns your repository's DNA — architecture rules, coding conventions, approved patterns — then deploys four parallel IBM Bob subagents to validate every AI-generated Pull Request before it can corrupt your codebase.
+VibeShift is a production-ready AI guardrail for AI-assisted development teams. It connects to your GitHub account, learns your repository's DNA — architecture rules, coding conventions, approved patterns — then deploys **four parallel IBM Bob subagents** to validate every Pull Request in real time before it corrupts your codebase.
 
-[![IBM Bob 2.0](https://img.shields.io/badge/IBM%20Bob-2.0-blue)](https://www.ibm.com/products/bob)
-[![Granite AI](https://img.shields.io/badge/Granite-AI-purple)](https://www.ibm.com/granite)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org)
-[![Vercel](https://img.shields.io/badge/Deployed-Vercel-black)](https://vercel.com)
+[![IBM Bob 2.0](https://img.shields.io/badge/IBM%20Bob-2.0-0062ff?style=flat-square&logo=ibm)](https://ibm.com)
+[![Granite AI](https://img.shields.io/badge/Granite-3.3B_Instruct-8a3ffc?style=flat-square&logo=ibm)](https://ibm.com/granite)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript)](https://typescriptlang.org)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com)
+[![Hackathon](https://img.shields.io/badge/IBM%20Bob%202.0-Hackathon-ff6b35?style=flat-square)](https://lablab.ai)
 
 ---
 
-##  The Problem
+## The Problem
 
-AI coding tools (Cursor, Copilot, Devin) generate code fast — but they don't know your architecture. They:
+AI coding tools (Cursor, Copilot, Devin, Windsurf) generate code fast — but they don't know your architecture. They:
 
-- Put database logic inside React components
-- Import npm packages that **don't exist** (hallucination)
-- Introduce SQL injection vectors
-- Skip unit tests entirely
-- Bypass shared utilities (axios instead of apiClient)
+- Put **database logic inside React components**
+- Import npm packages that **don't exist** (AI hallucination)
+- Introduce **SQL injection** vectors and **hardcoded secrets**
+- **Skip unit tests** entirely
+- Bypass shared utilities (`axios` instead of `apiClient`)
+- Leave **TODO stubs** as test coverage
 
 Every AI-generated PR is a potential **architectural drift event**. Without a gate, these merge silently into production.
 
 ---
 
-##  The Solution
+## The Solution
 
-VibeShift is a **PR integrity gate** that:
+VibeShift is a **live PR integrity gate** that:
 
-1. **Learns your Project DNA** from `ARCHITECTURE.md`, `CONTRIBUTING.md`, and approved PR history
-2. **Spawns 4 parallel AI agents** via IBM Bob 2.0 to inspect the PR from four angles simultaneously
-3. **Produces a scored Go/No-Go decision** with full violation details
-4. **Generates auto-fix patches** for every violation found
-5. **Posts to GitHub** as a PR comment + status check + merge block
+1. **Connects to your real GitHub account** via OAuth — sees your actual repos and open PRs
+2. **Learns your Project DNA** by reading `ARCHITECTURE.md`, `CONTRIBUTING.md`, and `.vibeshift.yml`
+3. **Spawns 4 parallel AI agents** via IBM Bob 2.0 to inspect every changed file from four angles simultaneously
+4. **Produces a scored Go/No-Go decision** with full per-line violation details
+5. **Posts directly to GitHub** — PR comment, commit status checks, and merge block
 
 ---
 
-##  Architecture
+## Live Demo
+
+> Any GitHub user can sign in and analyse their own repositories — no configuration needed.
+
+1. Visit the deployed app
+2. **Sign in with GitHub** (OAuth — your own token, your own repos)
+3. Select any repository with open Pull Requests
+4. Click **Analyse** on any PR
+5. See real violations, integrity score, agent summaries, and download a full report
+6. Check your GitHub PR — a VibeShift comment was posted automatically
+
+---
+
+## How It Works
 
 ```
-GitHub PR Event
-      │
-      ▼ POST /api/github/webhook
-VibeShift API (Next.js App Router)
-      │
-      ▼ extractProjectDNA()
-Project DNA (rules, patterns, prohibitions)
-      │
-      ▼ orchestratePRAnalysis()  ─────── parallel ──────────────────────────┐
-IBM Bob Orchestrator                                                         │
-      ├── Pattern Drift Agent      (architectural violations)                │
-      ├── Security Sentinel Agent  (OWASP Top 10, CWE)                     │
-      ├── Dependency Guardian Agent (hallucinated packages, CVEs)           │
-      └── Test Gap Finder Agent    (coverage regression)   ◄────────────────┘
-      │
-      ▼ score = 100 - (critical×20 + high×10 + medium×3 + low×1)
-Decision Engine (GO if score ≥ 70 AND no criticals)
-      │
-      ▼
-GitHub: PR Comment + Status Check + Merge Block/Allow
+You open a Pull Request on GitHub
+              │
+              ▼  POST /api/github/webhook  (X-Hub-Signature-256 verified)
+              │  — OR —
+              ▼  Click "Analyse" in the Dashboard
+              │
+              ├─ getPRDetail()   ──── real PR metadata from GitHub API
+              ├─ getPRFiles()    ──── real diff patch text from GitHub API
+              └─ extractProjectDNA()
+                    ├─ fetches ARCHITECTURE.md from your repo
+                    ├─ fetches CONTRIBUTING.md from your repo
+                    └─ extracts rules + framework info (falls back to 8 universal OWASP rules)
+              │
+              ▼  orchestratePRAnalysis()  — 4 agents run IN PARALLEL
+              │
+    ┌─────────┬──────────┬──────────┬──────────┐
+    ▼         ▼          ▼          ▼
+Pattern    Security   Dependency  Test Gap
+ Drift     Sentinel    Guardian    Finder
+ 8 rules   9 rules     smart       3 checks
+             OWASP     whitelist
+             /CWE
+    └─────────┴──────────┴──────────┴──────────┘
+              │
+              ▼
+    integrityScore = 100 − (critical×20 + high×10 + medium×3 + low×1)
+    decision = NO-GO if score < 60 OR any critical violation
+              │
+              ├─ updateCommitStatus()  →  vibeshift/integrity + vibeshift/security on GitHub
+              ├─ postPRComment()       →  full violation table + agent summaries + report link
+              └─ recordAnalysis()      →  persisted to analytics store (real-time dashboard)
 ```
 
 ---
 
-##  Features
+## The Four Agents
 
-### 1. Project DNA Learning
-- Parses `ARCHITECTURE.md` and `CONTRIBUTING.md`
-- Extracts typed rules with severity, examples (bad/good), and source attribution
-- Builds a living rule graph used by all agents
+### 🟡 Pattern Drift Agent
+Detects violations of architectural and coding conventions on every added/modified line.
 
-### 2. Four Parallel AI Agents
+| Rule | Severity | What it catches |
+|------|----------|-----------------|
+| `NO_DB_IN_UI` | **Critical** | ORM client (Prisma, Mongoose, etc.) used inside a UI component |
+| `NO_AXIOS_DIRECT` | High | Direct `axios.get()` call bypassing shared apiClient interceptors |
+| `NO_SYNCHRONOUS_FS` | High | `fs.readFileSync()` blocking the Node.js event loop |
+| `NO_DIRECT_FETCH` | Medium | Raw `fetch()` to external URL without shared wrapper |
+| `NO_CONSOLE_LOG` | Medium | `console.log` in production code |
+| `NO_ANY_TYPE` | Low | TypeScript `any` type defeating type safety |
+| `NO_TODO_COMMENT` | Low | `// TODO` / `// FIXME` left in committed code |
+| `NO_MAGIC_NUMBER` | Low | Magic time constants without named constants |
 
-| Agent | What It Catches |
-|-------|-----------------|
-| **Pattern Drift** | DB in UI, wrong state management, console.log, wrong HTTP client |
-| **Security Sentinel** | SQL injection (CWE-89), XSS, hardcoded secrets, OWASP Top 10 |
-| **Dependency Guardian** | Hallucinated npm packages, vulnerable dependencies, unapproved packages |
-| **Test Gap Finder** | Untested components, coverage regression, TODO-stub tests |
+### 🔴 Security Sentinel Agent
+SAST-level security analysis covering OWASP Top 10 and CWE categories.
 
-### 3. Integrity Score
-- 0–100 score based on violation severity
-- GO (≥70, no criticals) / NO-GO decision
-- Score trend tracked over time in Analytics
+| Rule | Severity | CWE | OWASP |
+|------|----------|-----|-------|
+| `NO_SQL_INJECTION` | **Critical** | CWE-89 | A03:Injection |
+| `NO_HARDCODED_SECRET` | **Critical** | CWE-798 | A02:Cryptographic Failures |
+| `NO_EVAL` | **Critical** | CWE-95 | A03:Injection |
+| `NO_PROTOTYPE_POLLUTION` | **Critical** | CWE-1321 | A03:Injection |
+| `NO_INNERHTML` | High | CWE-79 | A03:Injection (XSS) |
+| `NO_OPEN_REDIRECT` | High | CWE-601 | A01:Broken Access Control |
+| `NO_CORS_WILDCARD` | High | CWE-346 | A05:Security Misconfiguration |
+| `NO_DOCUMENT_WRITE` | High | CWE-79 | A03:Injection |
+| `NO_INSECURE_RANDOM` | Medium | CWE-338 | A02:Cryptographic Failures |
 
-### 4. Auto Remediation
-- IBM Bob + Granite generates corrected code for each violation
-- Side-by-side original vs fixed view
-- Unified diff export
-- Copy-to-clipboard for instant application
+### 🔵 Dependency Guardian Agent
+Scans every `import` and `require()` statement in the diff against a whitelist of 30+ known-legitimate packages.
 
-### 5. GitHub Integration
-- Webhook receiver for `pull_request` events
-- Auto-posts detailed PR comment with violation table
-- Updates GitHub status checks (`vibeshift/integrity`, `vibeshift/security`)
-- Blocks merge via branch protection rules when NO-GO
+- Detects AI-hallucinated npm packages that don't exist in the registry
+- Handles both ES module imports and CommonJS `require()`
+- Correctly handles scoped packages (`@org/package`)
+- Reports the exact import line and suggests verification steps
 
-### 6. Analytics Dashboard
-- Integrity score trend (8-day rolling)
-- Violations by category (pie chart)
-- Agent execution time comparison
-- PRs analyzed per day
+### 🟣 Test Gap Finder Agent
+Ensures new code ships with adequate test coverage.
+
+- Flags new source files (>10 lines added) with no corresponding test file in the PR
+- Detects test files that contain only `TODO` stubs or `it.skip` / `xit` placeholders
+- Flags new API routes without integration tests
 
 ---
 
-##  Project Structure
+## Project DNA
+
+VibeShift reads your repository's own documentation to learn its specific rules:
+
+```
+Your repo
+├── ARCHITECTURE.md   → framework detection, prohibitions, conventions
+├── CONTRIBUTING.md   → custom rules parsed from bullet lists (- RULE_NAME: description)
+└── .vibeshift.yml    → explicit rule configuration (future: YAML parser)
+```
+
+If none of these files exist, VibeShift falls back to **8 universal OWASP/best-practice rules** that apply to any codebase.
+
+---
+
+## GitHub Integration
+
+### Automatic (Webhook)
+Every PR opened/updated triggers analysis automatically:
+
+1. GitHub sends `pull_request` event to `/api/github/webhook`
+2. VibeShift verifies the `X-Hub-Signature-256` HMAC
+3. Sets commit status to `pending` immediately
+4. Runs full 4-agent analysis (fire-and-forget, responds to GitHub in <100ms)
+5. Posts commit status (`vibeshift/integrity` + `vibeshift/security`)
+6. Posts a detailed PR comment with violation table
+7. Merge is blocked by branch protection rules when decision is NO-GO
+
+### Manual (Dashboard)
+1. Sign in with GitHub
+2. Select a repo and PR
+3. Click **Analyse**
+4. See results instantly + PR comment auto-posted
+
+---
+
+## Real-Time Analytics
+
+Every completed analysis is stored in the analytics store and reflected on the Analytics page:
+
+- **Integrity score trend** over time (line chart)
+- **Violations by category** breakdown (pie chart)
+- **Agent execution time** comparison (horizontal bar chart)
+- **PRs analysed per day** (bar chart)
+- **Recent analyses table** with scores, decisions, and timestamps
+
+Analytics automatically switch from demo data to real data after the first analysis is run.
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Version |
+|-------|------------|---------|
+| Framework | Next.js App Router | 16 |
+| Language | TypeScript | 5 |
+| AI Orchestration | IBM Bob 2.0 | — |
+| AI Models | IBM Granite 3.3B Instruct | — |
+| Authentication | NextAuth.js v5 (GitHub OAuth) | 5 |
+| Styling | Tailwind CSS | 4 |
+| Charts | Recharts | 2 |
+| Icons | Lucide React | — |
+| Deployment | Vercel | — |
+| CI/CD | GitHub Actions | — |
+
+---
+
+## Project Structure
 
 ```
 vibeshift/
 ├── src/
 │   ├── app/
-│   │   ├── (app)/                    # Authenticated app routes
-│   │   │   ├── dashboard/page.tsx    # Main dashboard
-│   │   │   ├── pr/[id]/page.tsx      # PR Viewer (diff + violations + agents)
-│   │   │   ├── analytics/page.tsx    # Charts and trends
-│   │   │   ├── github/page.tsx       # GitHub integration simulation
-│   │   │   └── architecture/page.tsx # SVG system diagrams
+│   │   ├── (app)/
+│   │   │   ├── dashboard/page.tsx          # Live GitHub repos + PRs + Analyse button
+│   │   │   ├── analyze/[owner]/[repo]/[pr] # Real PR analysis viewer
+│   │   │   ├── analytics/page.tsx          # Live charts (real data + mock fallback)
+│   │   │   ├── github/page.tsx             # Webhook simulation + status checks UI
+│   │   │   ├── architecture/page.tsx       # SVG system diagrams
+│   │   │   ├── settings/page.tsx           # Profile, integration status, rules
+│   │   │   └── pr/[id]/page.tsx            # Demo PR viewer (mock data)
 │   │   ├── api/
-│   │   │   ├── auth/[...nextauth]/   # GitHub OAuth
-│   │   │   ├── analyze/[id]/         # PR analysis trigger
-│   │   │   ├── repositories/         # Repository list
-│   │   │   └── github/webhook/       # Webhook receiver
-│   │   ├── auth/signin/              # Custom sign-in page
-│   │   └── page.tsx                  # Landing page
+│   │   │   ├── auth/[...nextauth]/         # GitHub OAuth handler
+│   │   │   ├── analytics/                  # GET real aggregated analytics
+│   │   │   ├── github/
+│   │   │   │   ├── repos/                  # GET user repos via OAuth token
+│   │   │   │   ├── webhook/                # POST real webhook (HMAC verified)
+│   │   │   │   └── [owner]/[repo]/
+│   │   │   │       ├── pulls/              # GET open PRs
+│   │   │   │       └── [pr]/               # GET PR detail | POST run analysis
+│   │   │   └── analyze/[id]/               # POST demo analysis
+│   │   ├── auth/signin/                    # Custom sign-in page
+│   │   ├── not-found.tsx                   # Global 404
+│   │   └── page.tsx                        # Landing page
 │   ├── services/
-│   │   └── bob/
-│   │       ├── orchestrator.ts       # IBM Bob orchestration layer
-│   │       ├── projectDNA.ts         # DNA extraction service
-│   │       ├── remediation.ts        # Auto-fix generation
-│   │       └── subagents/
-│   │           ├── patternDrift.ts
-│   │           ├── securitySentinel.ts
-│   │           ├── dependencyGuardian.ts
-│   │           └── testGapFinder.ts
+│   │   ├── bob/
+│   │   │   ├── orchestrator.ts             # Runs 4 agents in parallel on real diff
+│   │   │   ├── projectDNA.ts               # Fetches ARCHITECTURE.md / CONTRIBUTING.md
+│   │   │   ├── remediation.ts              # Auto-fix generation
+│   │   │   └── subagents/
+│   │   │       ├── patternDrift.ts         # 8 pattern rules on real patch text
+│   │   │       ├── securitySentinel.ts     # 9 OWASP/CWE rules on real patch text
+│   │   │       ├── dependencyGuardian.ts   # Import scanner + hallucination detection
+│   │   │       └── testGapFinder.ts        # Test gap detection on real file list
+│   │   └── github/
+│   │       └── client.ts                   # GitHub REST API client (OAuth token)
+│   ├── lib/
+│   │   ├── analyticsStore.ts               # In-memory store of real analyses
+│   │   ├── types.ts                        # TypeScript interfaces
+│   │   └── utils.ts                        # Utilities
 │   ├── components/
 │   │   ├── Navbar.tsx
-│   │   └── ui/
-│   │       ├── Badge.tsx
-│   │       ├── Button.tsx
-│   │       ├── Card.tsx
-│   │       └── ScoreCircle.tsx
-│   ├── mock-data/
-│   │   └── index.ts                  # Realistic demo data
-│   └── lib/
-│       ├── types.ts                  # TypeScript interfaces
-│       └── utils.ts                  # Utilities
-├── .github/
-│   └── workflows/
-│       └── vibeshift.yml             # GitHub Action
-├── .env.local                        # Secrets (gitignored)
+│   │   └── ui/                             # Badge, Button, Card, ScoreCircle
+│   └── mock-data/index.ts                  # Demo data (used only on /pr/[id] demo page)
+├── .github/workflows/vibeshift.yml         # GitHub Actions CI
+├── .env.example                            # Environment variable reference
+├── DEPLOY.md                               # Step-by-step deployment guide
+├── vercel.json                             # Vercel config
 └── README.md
 ```
 
 ---
 
-##  Demo Flow
+## Environment Variables
 
-The demo PR (`pr-1`) simulates a real AI-generated PR that:
+```bash
+# GitHub OAuth App (create at github.com/settings/developers)
+GITHUB_CLIENT_ID=your_oauth_app_client_id
+GITHUB_CLIENT_SECRET=your_oauth_app_client_secret
 
-1. **Puts Prisma DB access inside a React component** (`ProductCard.tsx`)
-   - `const product = await db.product.findUnique(...)` inside a component
-   - VibeShift catches: `NO_DB_IN_UI` (CRITICAL)
+# NextAuth (generate: openssl rand -base64 32)
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=https://your-deployment.vercel.app
 
-2. **Imports a hallucinated npm package**
-   - `import { parseUserData } from 'user-utils-pro'`
-   - Package does not exist on npm
-   - VibeShift catches: `NO_HALLUCINATED_PACKAGES` (CRITICAL)
+# Webhook (any random string — set same value in GitHub webhook settings)
+GITHUB_WEBHOOK_SECRET=your_webhook_secret
 
-3. **Constructs raw SQL with template literal**
-   - `SELECT * FROM products WHERE id = '${productId}'`
-   - VibeShift catches: `NO_SQL_INJECTION` — CWE-89, OWASP A03 (CRITICAL)
+# IBM Bob API
+BOB_API_KEY=your_bob_api_key
+BOB_API_URL=https://api.ibm-bob.com/v1
+```
 
-4. **Uses axios directly instead of apiClient**
-   - `axios.get('/api/reviews/' + productId)`
-   - VibeShift catches: `USE_API_CLIENT` (HIGH)
-
-5. **Has no unit tests**
-   - Test file contains only `// TODO: add tests`
-   - VibeShift catches: `REQUIRE_UNIT_TESTS` (HIGH)
-
-6. **Has console.log in production code**
-   - `console.log('reviews loaded', res.data)`
-   - VibeShift catches: `NO_CONSOLE_LOG` (MEDIUM)
-
-**Result:** Score 23/100 · Decision: NO-GO · Merge Blocked
+See [`DEPLOY.md`](./DEPLOY.md) for the full step-by-step deployment guide.
 
 ---
 
-##  Tech Stack
+## Future Scope
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 14 (App Router) |
-| AI Orchestration | IBM Bob 2.0 |
-| AI Models | IBM Granite 3 8B Instruct |
-| Authentication | NextAuth.js v5 (GitHub OAuth) |
-| Styling | Tailwind CSS v4 |
-| Charts | Recharts |
-| Icons | Lucide React |
-| Deployment | Vercel |
-| CI/CD | GitHub Actions |
-
----
-
-##  Future Scope
-
-- **Real GitHub API integration**: Live PR diffs, real commit data, actual repo scanning
-- **IBM Granite fine-tuned models**: Train on approved PR corpus per repository
-- **IDE plugin**: VSCode extension that runs VibeShift before you even open a PR
-- **Slack/Teams notifications**: Real-time alerts for NO-GO decisions
-- **Multi-language support**: Python, Java, Go, Rust alongside TypeScript
-- **Team dashboards**: Organization-wide integrity health view
+- **IBM Granite fine-tuning**: Train on your approved PR corpus for repo-specific rules
+- **IDE plugin**: VSCode extension that runs VibeShift before you open a PR
+- **Slack / Teams notifications**: Real-time alerts for NO-GO decisions
+- **Multi-language support**: Python, Java, Go, Rust rule sets
+- **Organization dashboards**: Integrity health across all repos in an org
 - **SBOM generation**: Software Bill of Materials for every merged PR
-- **Learning mode**: Agents learn from human reviewer corrections
+- **Learning mode**: Agents learn from human reviewer corrections over time
+- **Custom rule YAML**: Full `.vibeshift.yml` rule DSL with regex, AST, and LLM checks
 
 ---
 
-
----
-
-*Built with IBM Bob 2.0 × Granite AI × Next.js × Vercel*
+*Built for the **IBM Bob 2.0 Hackathon** on lablab.ai*
+*Powered by IBM Bob 2.0 × Granite AI × Next.js × Vercel*
