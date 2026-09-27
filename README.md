@@ -8,7 +8,6 @@ VibeShift is an enterprise-grade AI guardrail for AI-assisted development. It le
 [![Granite AI](https://img.shields.io/badge/Granite-AI-purple)](https://www.ibm.com/granite)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org)
 [![Vercel](https://img.shields.io/badge/Deployed-Vercel-black)](https://vercel.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
 
@@ -218,9 +217,6 @@ The demo PR (`pr-1`) simulates a real AI-generated PR that:
 
 ---
 
-## 📄 License
-
-MIT © 2025 VibeShift — Built for IBM Bob 2.0 Hackathon by lablab.ai
 
 ---
 
