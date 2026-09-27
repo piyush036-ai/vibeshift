@@ -1,4 +1,4 @@
-# 🛡️ VibeShift — AI Code Integrity Gate
+#  VibeShift — AI Code Integrity Gate
 
 > **Stop AI-induced architectural drift before it merges.**
 
@@ -93,7 +93,7 @@ Pattern    Security   Dependency  Test Gap
 
 ## The Four Agents
 
-### 🟡 Pattern Drift Agent
+###  Pattern Drift Agent
 Detects violations of architectural and coding conventions on every added/modified line.
 
 | Rule | Severity | What it catches |
@@ -107,7 +107,7 @@ Detects violations of architectural and coding conventions on every added/modifi
 | `NO_TODO_COMMENT` | Low | `// TODO` / `// FIXME` left in committed code |
 | `NO_MAGIC_NUMBER` | Low | Magic time constants without named constants |
 
-### 🔴 Security Sentinel Agent
+###  Security Sentinel Agent
 SAST-level security analysis covering OWASP Top 10 and CWE categories.
 
 | Rule | Severity | CWE | OWASP |
@@ -122,7 +122,7 @@ SAST-level security analysis covering OWASP Top 10 and CWE categories.
 | `NO_DOCUMENT_WRITE` | High | CWE-79 | A03:Injection |
 | `NO_INSECURE_RANDOM` | Medium | CWE-338 | A02:Cryptographic Failures |
 
-### 🔵 Dependency Guardian Agent
+###  Dependency Guardian Agent
 Scans every `import` and `require()` statement in the diff against a whitelist of 30+ known-legitimate packages.
 
 - Detects AI-hallucinated npm packages that don't exist in the registry
@@ -130,7 +130,7 @@ Scans every `import` and `require()` statement in the diff against a whitelist o
 - Correctly handles scoped packages (`@org/package`)
 - Reports the exact import line and suggests verification steps
 
-### 🟣 Test Gap Finder Agent
+### Test Gap Finder Agent
 Ensures new code ships with adequate test coverage.
 
 - Flags new source files (>10 lines added) with no corresponding test file in the PR
@@ -260,28 +260,7 @@ vibeshift/
 └── README.md
 ```
 
----
 
-## Environment Variables
-
-```bash
-# GitHub OAuth App (create at github.com/settings/developers)
-GITHUB_CLIENT_ID=your_oauth_app_client_id
-GITHUB_CLIENT_SECRET=your_oauth_app_client_secret
-
-# NextAuth (generate: openssl rand -base64 32)
-NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=https://your-deployment.vercel.app
-
-# Webhook (any random string — set same value in GitHub webhook settings)
-GITHUB_WEBHOOK_SECRET=your_webhook_secret
-
-# IBM Bob API
-BOB_API_KEY=your_bob_api_key
-BOB_API_URL=https://api.ibm-bob.com/v1
-```
-
-See [`DEPLOY.md`](./DEPLOY.md) for the full step-by-step deployment guide.
 
 ---
 
