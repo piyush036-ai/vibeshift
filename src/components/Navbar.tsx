@@ -5,7 +5,6 @@ import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  GitPullRequest,
   BarChart3,
   GitBranch,
   LogOut,
@@ -19,7 +18,6 @@ import { useState } from "react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/pr/pr-1", label: "PR Viewer", icon: GitPullRequest },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/github", label: "GitHub", icon: GitBranch },
   { href: "/architecture", label: "Arch", icon: Network },
@@ -49,7 +47,10 @@ export function Navbar() {
         {/* Nav */}
         <nav className="hidden md:flex items-center gap-0.5">
           {navItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(href + "/");
+              const active =
+                pathname === href ||
+                pathname.startsWith(href + "/") ||
+                (href === "/dashboard" && pathname.startsWith("/analyze"));
             return (
               <Link
                 key={href}
