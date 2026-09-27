@@ -6,7 +6,9 @@ import {
   postPRComment,
   updateCommitStatus,
 } from "@/services/github/client";
-import { analyseRealDiff } from "@/services/github/analyser";
+import { orchestratePRAnalysis } from "@/services/bob/orchestrator";
+import { extractProjectDNA } from "@/services/bob/projectDNA";
+import { recordAnalysis } from "@/lib/analyticsStore";
 
 export async function GET(
   _req: Request,
@@ -25,7 +27,6 @@ export async function GET(
       getPRDetail(session.accessToken, owner, repo, prNumber),
       getPRFiles(session.accessToken, owner, repo, prNumber),
     ]);
-
     return NextResponse.json({ detail, files });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to fetch PR";
@@ -47,110 +48,143 @@ export async function POST(
   const token = session.accessToken;
 
   try {
-    // Set status to pending immediately
-    const [detail, files] = await Promise.all([
+    // Fetch PR detail, files, and project DNA in parallel
+    const [detail, files, dna] = await Promise.all([
       getPRDetail(token, owner, repo, prNumber),
       getPRFiles(token, owner, repo, prNumber),
+      extractProjectDNA(token, owner, repo),
     ]);
 
-    // Run real analysis on the actual diff
-    const startTime = Date.now();
-    const { violations, agentSummaries } = analyseRealDiff(files);
-    const executionMs = Date.now() - startTime;
+    // Run the 4 IBM Bob subagents in parallel against real diff
+    const result = await orchestratePRAnalysis({
+      files,
+      owner,
+      repo,
+      prNumber,
+      sha: detail.head.sha,
+    });
 
-    // Score calculation
-    const critical = violations.filter((v) => v.severity === "critical").length;
-    const high = violations.filter((v) => v.severity === "high").length;
-    const medium = violations.filter((v) => v.severity === "medium").length;
-    const low = violations.filter((v) => v.severity === "low").length;
-    const penalty = critical * 20 + high * 10 + medium * 3 + low * 1;
-    const integrityScore = Math.max(0, Math.min(100, 100 - penalty));
-    const decision: "go" | "no-go" =
-      critical > 0 || integrityScore < 60 ? "no-go" : "go";
+    const { integrityScore, decision, allViolations, agentResults, agentSummaries, executionSummary } = result;
 
-    const sha = detail.head.sha;
+    // Persist to analytics store (in-memory, survives requests in same Node.js worker)
+    recordAnalysis({
+      owner,
+      repo,
+      prNumber,
+      prTitle: detail.title,
+      integrityScore,
+      decision,
+      violations: allViolations,
+      agentResults,
+      executionMs: executionSummary.totalMs,
+      analyzedAt: new Date().toISOString(),
+      dnaRulesCount: dna.rules.length,
+      frameworks: dna.frameworks,
+    });
+
     const appUrl = process.env.NEXTAUTH_URL ?? "https://vibeshift.vercel.app";
+    const sha = detail.head.sha;
 
-    // Post GitHub status checks
+    // Update GitHub commit status checks (non-fatal)
     try {
       await Promise.all([
         updateCommitStatus(
           token, owner, repo, sha,
           decision === "go" ? "success" : "failure",
           "vibeshift/integrity",
-          `Score: ${integrityScore}/100 — ${decision.toUpperCase()}`,
+          `Score: ${integrityScore}/100 — ${decision.toUpperCase()} · ${allViolations.length} violation(s)`,
           `${appUrl}/analyze/${owner}/${repo}/${prNumber}`
         ),
         updateCommitStatus(
           token, owner, repo, sha,
-          critical > 0 ? "failure" : "success",
+          executionSummary.criticalViolations > 0 ? "failure" : "success",
           "vibeshift/security",
-          critical > 0 ? `${critical} critical security violation(s)` : "No security violations",
+          executionSummary.criticalViolations > 0
+            ? `${executionSummary.criticalViolations} critical security violation(s) — merge blocked`
+            : "No security vulnerabilities found",
           `${appUrl}/analyze/${owner}/${repo}/${prNumber}`
         ),
       ]);
-    } catch {
-      // Status check posting may fail on repos without push access — non-fatal
-    }
+    } catch { /* Status check may fail on repos without push access — non-fatal */ }
 
-    // Build and post PR comment
-    const commentLines = [
-      `## 🛡️ VibeShift Analysis — PR #${prNumber}`,
-      ``,
-      `**Integrity Score: ${integrityScore}/100** · Decision: ${decision === "go" ? "🟢 **GO — Merge Approved**" : "🔴 **NO-GO — Merge Blocked**"}`,
-      ``,
-      `| Metric | Value |`,
-      `|--------|-------|`,
-      `| Integrity Score | ${integrityScore}/100 |`,
-      `| Decision | ${decision === "go" ? "✅ GO" : "❌ NO-GO"} |`,
-      `| Critical Violations | ${critical} |`,
-      `| High Violations | ${high} |`,
-      `| Total Violations | ${violations.length} |`,
-      `| Analysis Time | ${executionMs}ms |`,
-    ];
-
-    if (violations.length > 0) {
-      commentLines.push(``, `### Violations Found`);
-      commentLines.push(`| Severity | Rule | File | Line |`);
-      commentLines.push(`|----------|------|------|------|`);
-      for (const v of violations.slice(0, 10)) {
-        const icon =
-          v.severity === "critical" ? "🔴" :
-          v.severity === "high" ? "🟠" :
-          v.severity === "medium" ? "🟡" : "🔵";
-        commentLines.push(
-          `| ${icon} ${v.severity.toUpperCase()} | \`${v.rule}\` | \`${v.file}\` | ${v.line} |`
-        );
-      }
-      if (violations.length > 10) {
-        commentLines.push(`| … | +${violations.length - 10} more | | |`);
-      }
-    }
-
-    commentLines.push(``, `### Agent Summaries`);
-    commentLines.push(`- **Pattern Drift**: ${agentSummaries.patternDrift}`);
-    commentLines.push(`- **Security Sentinel**: ${agentSummaries.security}`);
-    commentLines.push(`- **Dependency Guardian**: ${agentSummaries.dependency}`);
-    commentLines.push(`- **Test Gap Finder**: ${agentSummaries.testGap}`);
-    commentLines.push(``, `---`);
-    commentLines.push(`*Powered by [VibeShift](${appUrl}) — IBM Bob 2.0 × Granite AI · [View full report](${appUrl}/analyze/${owner}/${repo}/${prNumber})*`);
-
+    // Build and post detailed PR comment (non-fatal)
     try {
+      const critical = allViolations.filter((v) => v.severity === "critical").length;
+      const high     = allViolations.filter((v) => v.severity === "high").length;
+      const medium   = allViolations.filter((v) => v.severity === "medium").length;
+
+      const commentLines = [
+        `## 🛡️ VibeShift Analysis — PR #${prNumber}`,
+        ``,
+        `> Powered by **IBM Bob 2.0 × Granite AI** · [View full report](${appUrl}/analyze/${owner}/${repo}/${prNumber})`,
+        ``,
+        `| Metric | Value |`,
+        `|--------|-------|`,
+        `| **Integrity Score** | ${integrityScore}/100 |`,
+        `| **Decision** | ${decision === "go" ? "✅ GO — Merge Approved" : "❌ NO-GO — Merge Blocked"} |`,
+        `| Critical | ${critical} |`,
+        `| High | ${high} |`,
+        `| Medium | ${medium} |`,
+        `| Total Violations | ${allViolations.length} |`,
+        `| Files Analysed | ${files.length} |`,
+        `| DNA Rules Loaded | ${dna.rules.length} (${dna.frameworks.join(", ")}) |`,
+        `| Analysis Time | ${executionSummary.totalMs}ms |`,
+        ``,
+      ];
+
+      if (allViolations.length > 0) {
+        commentLines.push(`### 🔍 Violations Found`);
+        commentLines.push(`| Severity | Rule | File | Line |`);
+        commentLines.push(`|----------|------|------|------|`);
+        const top = allViolations.slice(0, 12);
+        for (const v of top) {
+          const icon = v.severity === "critical" ? "🔴" : v.severity === "high" ? "🟠" : v.severity === "medium" ? "🟡" : "🔵";
+          commentLines.push(`| ${icon} ${v.severity.toUpperCase()} | \`${v.rule}\` | \`${v.file}\` | ${v.line} |`);
+        }
+        if (allViolations.length > 12) {
+          commentLines.push(`| … | +${allViolations.length - 12} more | | |`);
+        }
+        commentLines.push(``);
+      }
+
+      commentLines.push(`### 🤖 Agent Summaries`);
+      commentLines.push(`| Agent | Result |`);
+      commentLines.push(`|-------|--------|`);
+      commentLines.push(`| Pattern Drift | ${agentSummaries.patternDrift.slice(0, 100)} |`);
+      commentLines.push(`| Security Sentinel | ${agentSummaries.security.slice(0, 100)} |`);
+      commentLines.push(`| Dependency Guardian | ${agentSummaries.dependency.slice(0, 100)} |`);
+      commentLines.push(`| Test Gap Finder | ${agentSummaries.testGap.slice(0, 100)} |`);
+
+      if (decision === "no-go") {
+        commentLines.push(``);
+        commentLines.push(`### ❌ Merge Blocked`);
+        commentLines.push(`This PR cannot be merged until all critical violations are resolved and the integrity score reaches **≥ 60/100**.`);
+      }
+
+      commentLines.push(``);
+      commentLines.push(`---`);
+      commentLines.push(`*[VibeShift](${appUrl}) — IBM Bob 2.0 Hackathon · Session: \`${result.bobSessionId}\`*`);
+
       await postPRComment(token, owner, repo, prNumber, commentLines.join("\n"));
-    } catch {
-      // Comment posting may fail on repos without write access — non-fatal
-    }
+    } catch { /* Comment posting may fail without write access — non-fatal */ }
 
     return NextResponse.json({
       owner,
       repo,
       prNumber,
+      prTitle: detail.title,
       integrityScore,
       decision,
-      violations,
+      violations: allViolations,
+      agentResults,
       agentSummaries,
-      executionMs,
-      bobSessionId: `bob-real-${Date.now().toString(36)}`,
+      executionSummary,
+      dna: {
+        rulesLoaded: dna.rules.length,
+        frameworks: dna.frameworks,
+        conventions: dna.conventions,
+      },
+      bobSessionId: result.bobSessionId,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Analysis failed";

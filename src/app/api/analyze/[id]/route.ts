@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { MOCK_PULL_REQUESTS } from "@/mock-data";
 import { orchestratePRAnalysis } from "@/services/bob/orchestrator";
-import { extractProjectDNA } from "@/services/bob/projectDNA";
+import type { GHPRFile } from "@/services/github/client";
 
 export async function POST(
-  req: Request,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -15,16 +15,21 @@ export async function POST(
   const pr = MOCK_PULL_REQUESTS.find((p) => p.id === id);
   if (!pr) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const dna = await extractProjectDNA({ repositoryId: pr.repository });
+  // Convert mock FileDiff[] to GHPRFile[] shape for the real orchestrator
+  const files: GHPRFile[] = pr.diff.map((d) => ({
+    filename: d.filename,
+    status: d.status === "deleted" ? "removed" : d.status,
+    additions: d.additions,
+    deletions: d.deletions,
+    patch: d.patch,
+  }));
 
   const result = await orchestratePRAnalysis({
-    pr,
-    dnaRules: dna.rules.map((r) => r.rule),
-    repoContext: {
-      frameworks: dna.frameworks,
-      conventions: dna.conventions,
-      prohibitions: dna.prohibitions,
-    },
+    files,
+    owner: pr.repository.split("/")[0] ?? "demo",
+    repo: pr.repository.split("/")[1] ?? "demo",
+    prNumber: pr.number,
+    sha: "demo-sha-" + id,
   });
 
   return NextResponse.json(result);

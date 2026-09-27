@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -18,6 +19,10 @@ import {
   BarChart3,
   AlertTriangle,
   Clock,
+  RefreshCw,
+  Activity,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import {
   MOCK_ANALYTICS_TRENDS,
@@ -59,27 +64,126 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
+interface AnalyticsSummary {
+  totalPRs: number;
+  avgScore: number;
+  totalViolations: number;
+  mergesBlocked: number;
+  violationsByCategory: { category: string; count: number; color: string }[];
+  trend: { date: string; integrityScore: number; violations: number; prsAnalyzed: number }[];
+  agentTimings: { name: string; executionMs: number; violations: number }[];
+  recentAnalyses: {
+    id: string; owner: string; repo: string; prNumber: number; prTitle: string;
+    integrityScore: number; decision: string; violations: number; analyzedAt: string;
+  }[];
+}
+
 export default function AnalyticsPage() {
-  const totalViolations = MOCK_VIOLATION_CATEGORIES.reduce((a, c) => a + c.count, 0);
+  const [realData, setRealData] = useState<AnalyticsSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/analytics");
+      if (res.ok) {
+        const json = await res.json() as AnalyticsSummary & { empty?: boolean };
+        if (!json.empty) setRealData(json);
+      }
+    } catch { /* fall through to mock */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/analytics");
+        if (res.ok) {
+          const json = await res.json() as AnalyticsSummary & { empty?: boolean };
+          if (!cancelled && !json.empty) setRealData(json);
+        }
+      } catch { /* fall through to mock */ }
+      finally { if (!cancelled) setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Use real data if available, fall back to mock
+  const isReal = !!realData;
+  const trendData = realData?.trend?.length ? realData.trend : MOCK_ANALYTICS_TRENDS;
+  const violationCategories = realData?.violationsByCategory?.length ? realData.violationsByCategory.map((c) => ({ ...c, category: c.category.replace(/-/g, " ") })) : MOCK_VIOLATION_CATEGORIES;
+  const agentTimings = realData?.agentTimings?.length ? realData.agentTimings : MOCK_AGENT_TIMINGS;
+  const totalViolations = violationCategories.reduce((a, c) => a + c.count, 0);
+
+  const STATS = [
+    {
+      label: "Avg Integrity Score",
+      value: isReal ? String(realData?.avgScore ?? "—") : "79.5",
+      delta: isReal ? `${realData?.totalPRs ?? 0} PRs analysed` : "↑ 11pts",
+      icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10",
+    },
+    {
+      label: "Total Violations",
+      value: isReal ? String(realData?.totalViolations ?? 0) : String(totalViolations),
+      delta: isReal ? "Real GitHub data" : "↓ 22% this week",
+      icon: AlertTriangle, color: "text-yellow-400", bg: "bg-yellow-500/10",
+    },
+    {
+      label: "Merges Blocked",
+      value: isReal ? String(realData?.mergesBlocked ?? 0) : "31",
+      delta: isReal ? "NO-GO decisions" : "3 critical this week",
+      icon: XCircle, color: "text-red-400", bg: "bg-red-500/10",
+    },
+    {
+      label: isReal ? "Avg Agent Time" : "Fastest Agent",
+      value: isReal
+        ? `${Math.round((agentTimings.reduce((a, t) => a + t.executionMs, 0) / (agentTimings.length || 1)))}ms`
+        : "1.9s",
+      delta: isReal ? "4 agents per analysis" : "Dependency Guardian",
+      icon: Clock, color: "text-blue-400", bg: "bg-blue-500/10",
+    },
+  ];
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-slate-100">Analytics</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Repository integrity trends · Last 8 days
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-100">Analytics</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {isReal ? (
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                Live data from {realData?.totalPRs} real PR analysis
+                {(realData?.totalPRs ?? 0) !== 1 ? "es" : ""}
+              </span>
+            ) : (
+              loading ? "Loading real data…" : "Demo data — run an analysis from the Dashboard to see live stats"
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isReal && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <Activity className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-xs font-medium text-emerald-400">Real Data</span>
+            </div>
+          )}
+          <button
+            onClick={load}
+            disabled={loading}
+            className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-[#161625] transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
       </div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: "Avg Integrity Score", value: "79.5", delta: "↑ 11pts", icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-          { label: "Total Violations", value: String(totalViolations), delta: "↓ 22% this week", icon: AlertTriangle, color: "text-yellow-400", bg: "bg-yellow-500/10" },
-          { label: "Fastest Agent", value: "1.9s", delta: "Dependency Guardian", icon: Clock, color: "text-blue-400", bg: "bg-blue-500/10" },
-          { label: "PRs Analyzed", value: "50", delta: "8 day period", icon: BarChart3, color: "text-indigo-400", bg: "bg-indigo-500/10" },
-        ].map((s) => {
+        {STATS.map((s) => {
           const Icon = s.icon;
           return (
             <div key={s.label} className="bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl p-4">
@@ -98,31 +202,18 @@ export default function AnalyticsPage() {
 
       {/* Integrity Score Trend */}
       <div className="bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-slate-200 mb-4">Integrity Score Trend</h2>
+        <h2 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+          Integrity Score Trend
+          {!isReal && <span className="text-[11px] text-slate-600 font-normal">(demo data)</span>}
+        </h2>
         <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={MOCK_ANALYTICS_TRENDS} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+          <LineChart data={trendData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" />
             <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
-            <YAxis domain={[50, 100]} tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
+            <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
             <Tooltip content={<CustomTooltip />} />
-            <Line
-              type="monotone"
-              dataKey="integrityScore"
-              name="Integrity Score"
-              stroke="#6366f1"
-              strokeWidth={2}
-              dot={{ fill: "#6366f1", r: 3 }}
-              activeDot={{ r: 5 }}
-            />
-            <Line
-              type="monotone"
-              dataKey="violations"
-              name="Violations"
-              stroke="#f59e0b"
-              strokeWidth={2}
-              strokeDasharray="4 2"
-              dot={{ fill: "#f59e0b", r: 3 }}
-            />
+            <Line type="monotone" dataKey="integrityScore" name="Integrity Score" stroke="#6366f1" strokeWidth={2} dot={{ fill: "#6366f1", r: 3 }} activeDot={{ r: 5 }} />
+            <Line type="monotone" dataKey="violations" name="Violations" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 2" dot={{ fill: "#f59e0b", r: 3 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -134,17 +225,8 @@ export default function AnalyticsPage() {
           <div className="flex items-center gap-4">
             <ResponsiveContainer width="50%" height={160}>
               <PieChart>
-                <Pie
-                  data={MOCK_VIOLATION_CATEGORIES}
-                  dataKey="count"
-                  nameKey="category"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={40}
-                  outerRadius={70}
-                  strokeWidth={0}
-                >
-                  {MOCK_VIOLATION_CATEGORIES.map((entry) => (
+                <Pie data={violationCategories} dataKey="count" nameKey="category" cx="50%" cy="50%" innerRadius={40} outerRadius={70} strokeWidth={0}>
+                  {violationCategories.map((entry) => (
                     <Cell key={entry.category} fill={entry.color} />
                   ))}
                 </Pie>
@@ -152,21 +234,14 @@ export default function AnalyticsPage() {
               </PieChart>
             </ResponsiveContainer>
             <div className="flex-1 space-y-2">
-              {MOCK_VIOLATION_CATEGORIES.map((cat) => (
+              {violationCategories.map((cat) => (
                 <div key={cat.category} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cat.color }} />
-                    <span className="text-xs text-slate-400">{cat.category}</span>
+                    <span className="text-xs text-slate-400 capitalize">{cat.category}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div
-                      className="h-1.5 rounded-full"
-                      style={{
-                        width: `${(cat.count / totalViolations) * 80}px`,
-                        background: cat.color,
-                        opacity: 0.6,
-                      }}
-                    />
+                    <div className="h-1.5 rounded-full" style={{ width: `${totalViolations > 0 ? (cat.count / totalViolations) * 80 : 0}px`, background: cat.color, opacity: 0.6 }} />
                     <span className="text-xs font-semibold text-slate-300 w-5 text-right">{cat.count}</span>
                   </div>
                 </div>
@@ -179,17 +254,13 @@ export default function AnalyticsPage() {
         <div className="bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl p-5">
           <h2 className="text-sm font-semibold text-slate-200 mb-4">Agent Execution Time (ms)</h2>
           <ResponsiveContainer width="100%" height={160}>
-            <BarChart
-              data={MOCK_AGENT_TIMINGS}
-              margin={{ top: 5, right: 10, left: -20, bottom: 5 }}
-              layout="vertical"
-            >
+            <BarChart data={agentTimings} margin={{ top: 5, right: 10, left: -20, bottom: 5 }} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} width={110} />
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="executionMs" name="Execution (ms)" radius={4}>
-                {MOCK_AGENT_TIMINGS.map((entry, index) => {
+                {agentTimings.map((_, index) => {
                   const colors = ["#f59e0b", "#ef4444", "#8b5cf6", "#3b82f6"];
                   return <Cell key={index} fill={colors[index % colors.length]} fillOpacity={0.8} />;
                 })}
@@ -203,7 +274,7 @@ export default function AnalyticsPage() {
       <div className="bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl p-5">
         <h2 className="text-sm font-semibold text-slate-200 mb-4">PRs Analyzed per Day</h2>
         <ResponsiveContainer width="100%" height={150}>
-          <BarChart data={MOCK_ANALYTICS_TRENDS} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+          <BarChart data={trendData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
@@ -212,7 +283,44 @@ export default function AnalyticsPage() {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Recent Analyses — only shown with real data */}
+      {isReal && realData?.recentAnalyses && realData.recentAnalyses.length > 0 && (
+        <div className="bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+            <BarChart3 className="w-3.5 h-3.5 text-slate-400" />
+            Recent Analyses
+          </h2>
+          <div className="space-y-2">
+            {realData.recentAnalyses.map((r) => (
+              <div key={r.id} className="flex items-center justify-between px-3 py-2 rounded-lg border border-[#1e1e2e] hover:border-[#2a2a3e] transition-colors">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-300 truncate">
+                      {r.owner}/{r.repo} #{r.prNumber}
+                    </span>
+                    <span className="text-[11px] text-slate-500 truncate hidden sm:block">{r.prTitle}</span>
+                  </div>
+                  <div className="text-[11px] text-slate-600 mt-0.5">{r.analyzedAt.slice(0, 16).replace("T", " ")}</div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0 ml-3">
+                  <span className="text-sm font-bold" style={{ color: r.integrityScore >= 80 ? "#10b981" : r.integrityScore >= 60 ? "#f59e0b" : "#ef4444" }}>
+                    {r.integrityScore}
+                  </span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${r.decision === "go" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>
+                    {r.decision.toUpperCase()}
+                  </span>
+                  {r.decision === "go" ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <XCircle className="w-3.5 h-3.5 text-red-400" />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
