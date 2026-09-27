@@ -204,7 +204,7 @@ The demo PR (`pr-1`) simulates a real AI-generated PR that:
 
 ---
 
-## 🔮 Future Scope
+##  Future Scope
 
 - **Real GitHub API integration**: Live PR diffs, real commit data, actual repo scanning
 - **IBM Granite fine-tuned models**: Train on approved PR corpus per repository
