@@ -1,4 +1,4 @@
-# 🛡️ VibeShift — AI Code Integrity Gate
+#  VibeShift — AI Code Integrity Gate
 
 > **Stop AI-Induced Architectural Drift before it merges.**
 
@@ -12,7 +12,7 @@ VibeShift is an enterprise-grade AI guardrail for AI-assisted development. It le
 
 ---
 
-## 🔥 The Problem
+##  The Problem
 
 AI coding tools (Cursor, Copilot, Devin) generate code fast — but they don't know your architecture. They:
 
@@ -26,7 +26,7 @@ Every AI-generated PR is a potential **architectural drift event**. Without a ga
 
 ---
 
-## ✅ The Solution
+##  The Solution
 
 VibeShift is a **PR integrity gate** that:
 
@@ -38,7 +38,7 @@ VibeShift is a **PR integrity gate** that:
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 GitHub PR Event
@@ -65,7 +65,7 @@ GitHub: PR Comment + Status Check + Merge Block/Allow
 
 ---
 
-## 🚀 Features
+##  Features
 
 ### 1. Project DNA Learning
 - Parses `ARCHITECTURE.md` and `CONTRIBUTING.md`
@@ -106,7 +106,7 @@ GitHub: PR Comment + Status Check + Merge Block/Allow
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 vibeshift/
@@ -156,7 +156,7 @@ vibeshift/
 
 ---
 
-## 🎬 Demo Flow
+##  Demo Flow
 
 The demo PR (`pr-1`) simulates a real AI-generated PR that:
 
@@ -189,7 +189,7 @@ The demo PR (`pr-1`) simulates a real AI-generated PR that:
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -202,56 +202,6 @@ The demo PR (`pr-1`) simulates a real AI-generated PR that:
 | Icons | Lucide React |
 | Deployment | Vercel |
 | CI/CD | GitHub Actions |
-
----
-
-## ⚡ Quick Start
-
-### 1. Clone and install
-
-```bash
-git clone https://github.com/yourusername/vibeshift
-cd vibeshift
-npm install
-```
-
-### 2. Configure environment
-
-```bash
-cp .env.local.example .env.local
-```
-
-Edit `.env.local`:
-```env
-GITHUB_CLIENT_ID=your_github_oauth_app_client_id
-GITHUB_CLIENT_SECRET=your_github_oauth_app_client_secret
-NEXTAUTH_SECRET=$(openssl rand -base64 32)
-NEXTAUTH_URL=http://localhost:3000
-```
-
-### 3. Create GitHub OAuth App
-
-1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
-2. Create a new OAuth App
-3. Set Homepage URL: `http://localhost:3000`
-4. Set Callback URL: `http://localhost:3000/api/auth/callback/github`
-5. Copy Client ID and Secret to `.env.local`
-
-### 4. Run development server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000)
-
-### 5. Deploy to Vercel
-
-```bash
-npx vercel --prod
-```
-
-Set the same environment variables in Vercel dashboard. Update `NEXTAUTH_URL` to your Vercel deployment URL.
 
 ---
 
