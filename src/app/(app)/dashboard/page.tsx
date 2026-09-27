@@ -16,6 +16,8 @@ import {
   Activity,
   RefreshCw,
   GitBranch,
+  GitMerge,
+  Info,
 } from "lucide-react";
 import { ScoreCircle } from "@/components/ui/ScoreCircle";
 import { Badge } from "@/components/ui/Badge";
@@ -23,12 +25,13 @@ import { formatRelativeTime } from "@/lib/utils";
 import { useState, useEffect, useCallback } from "react";
 import type { GHRepo, GHPullRequest } from "@/services/github/client";
 
-const STATS = [
-  { label: "PRs Analyzed", value: "127", delta: "+14 this week", icon: GitPullRequest, color: "text-indigo-400", bg: "bg-indigo-500/10" },
-  { label: "Violations Caught", value: "83", delta: "↓ 22% from last week", icon: AlertTriangle, color: "text-yellow-400", bg: "bg-yellow-500/10" },
-  { label: "Merges Blocked", value: "31", delta: "3 critical this week", icon: Shield, color: "text-red-400", bg: "bg-red-500/10" },
-  { label: "Avg Score", value: "82", delta: "↑ 9pts from last month", icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-];
+interface AnalyticsSummary {
+  totalPRs: number;
+  avgScore: number;
+  totalViolations: number;
+  mergesBlocked: number;
+  agentTimings: { name: string; executionMs: number; violations: number }[];
+}
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -38,10 +41,23 @@ export default function DashboardPage() {
   const [selectedRepo, setSelectedRepo] = useState<GHRepo | null>(null);
   const [prs, setPrs] = useState<GHPullRequest[]>([]);
   const [analyzing, setAnalyzing] = useState<number | null>(null);
-  const [analysisResults, setAnalysisResults] = useState<Record<number, { score: number; decision: "go" | "no-go"; violationCount: number }>>({});
+  const [analysisResults, setAnalysisResults] = useState<Record<number, { score: number; decision: "go" | "no-go"; violationCount: number; agentTimings?: { name: string; executionMs: number; violations: number }[] }>>({});
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [loadingPRs, setLoadingPRs] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Real analytics stats
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+
+  // Fetch real analytics stats
+  useEffect(() => {
+    fetch("/api/analytics")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d: (AnalyticsSummary & { empty?: boolean }) | null) => {
+        if (d && !d.empty) setAnalytics(d);
+      })
+      .catch(() => {/* ignore */});
+  }, []);
 
   // Fetch real repos (also used as manual refresh handler)
   const fetchRepos = useCallback(async () => {
@@ -138,14 +154,56 @@ export default function DashboardPage() {
           score: data.integrityScore,
           decision: data.decision,
           violationCount: data.violations.length,
+          agentTimings: data.agentResults?.map((a: { name: string; executionMs: number; violations: { length: number }[] }) => ({
+            name: a.name,
+            executionMs: a.executionMs ?? 0,
+            violations: a.violations?.length ?? 0,
+          })),
         },
       }));
+      // Refresh analytics after analysis
+      fetch("/api/analytics")
+        .then((r) => r.ok ? r.json() : null)
+        .then((d: (AnalyticsSummary & { empty?: boolean }) | null) => { if (d && !d.empty) setAnalytics(d); })
+        .catch(() => {/* ignore */});
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis failed");
     } finally {
       setAnalyzing(null);
     }
   };
+
+  // Build stats from real analytics or show zeros (not fake numbers)
+  const STATS = [
+    {
+      label: "PRs Analyzed",
+      value: analytics ? String(analytics.totalPRs) : "0",
+      delta: analytics ? "via VibeShift" : "Run an analysis to start",
+      icon: GitPullRequest, color: "text-indigo-400", bg: "bg-indigo-500/10",
+    },
+    {
+      label: "Violations Caught",
+      value: analytics ? String(analytics.totalViolations) : "0",
+      delta: analytics ? "across all PRs" : "Awaiting first analysis",
+      icon: AlertTriangle, color: "text-yellow-400", bg: "bg-yellow-500/10",
+    },
+    {
+      label: "Merges Blocked",
+      value: analytics ? String(analytics.mergesBlocked) : "0",
+      delta: analytics ? "NO-GO decisions" : "No decisions yet",
+      icon: Shield, color: "text-red-400", bg: "bg-red-500/10",
+    },
+    {
+      label: "Avg Score",
+      value: analytics ? String(analytics.avgScore) : "—",
+      delta: analytics ? "integrity score" : "No data yet",
+      icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10",
+    },
+  ];
+
+  // Agent timeline — use last real result or show empty state
+  const lastResult = Object.values(analysisResults).at(-1);
+  const agentTimeline = lastResult?.agentTimings ?? analytics?.agentTimings ?? null;
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 py-6 space-y-6">
@@ -156,7 +214,9 @@ export default function DashboardPage() {
             Welcome back, {session?.user?.name?.split(" ")[0] ?? "Developer"}
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            {loadingRepos ? "Loading your repositories…" : `${repos.length} repositories connected via GitHub OAuth`}
+            {loadingRepos
+              ? "Loading your repositories…"
+              : `${repos.length} repositories connected via GitHub OAuth`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -183,7 +243,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stats */}
+      {/* Stats — real counts, not fake numbers */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {STATS.map((s) => {
           const Icon = s.icon;
@@ -203,7 +263,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4">
-        {/* Real Repo Selector */}
+        {/* Repo Selector */}
         <div className="lg:col-span-1 bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl p-4">
           <h2 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
             <Globe className="w-3.5 h-3.5 text-slate-400" />
@@ -233,17 +293,15 @@ export default function DashboardPage() {
                       : "border-transparent hover:border-[#2a2a3e] hover:bg-[#161625]"
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      {repo.private ? (
-                        <Lock className="w-3 h-3 text-slate-500 shrink-0" />
-                      ) : (
-                        <Globe className="w-3 h-3 text-slate-500 shrink-0" />
-                      )}
-                      <span className="text-xs font-semibold text-slate-200 truncate">
-                        {repo.name}
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-1.5 min-w-0 mb-1">
+                    {repo.private ? (
+                      <Lock className="w-3 h-3 text-slate-500 shrink-0" />
+                    ) : (
+                      <Globe className="w-3 h-3 text-slate-500 shrink-0" />
+                    )}
+                    <span className="text-xs font-semibold text-slate-200 truncate">
+                      {repo.name}
+                    </span>
                   </div>
                   <div className="flex items-center gap-3 text-[11px] text-slate-500">
                     {repo.language && (
@@ -256,9 +314,6 @@ export default function DashboardPage() {
                       <Star className="w-2.5 h-2.5" />
                       {repo.stargazers_count}
                     </span>
-                    {repo.open_issues_count > 0 && (
-                      <span className="text-yellow-400">{repo.open_issues_count} open</span>
-                    )}
                   </div>
                 </button>
               ))}
@@ -266,14 +321,14 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Real PR List */}
+        {/* PR List */}
         <div className="lg:col-span-2 bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl p-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
               <GitPullRequest className="w-3.5 h-3.5 text-slate-400" />
               Open Pull Requests
               {selectedRepo && (
-                <span className="text-indigo-400">{selectedRepo.full_name}</span>
+                <span className="text-indigo-400 text-xs font-normal">{selectedRepo.full_name}</span>
               )}
             </h2>
             {selectedRepo && (
@@ -295,9 +350,53 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : prs.length === 0 ? (
-            <div className="text-center py-10 text-slate-600 text-sm">
-              <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-500/30" />
-              {selectedRepo ? "No open pull requests" : "Select a repository"}
+            <div className="flex flex-col items-center py-10 gap-4">
+              {selectedRepo ? (
+                <>
+                  <CheckCircle2 className="w-10 h-10 text-emerald-500/30" />
+                  <div className="text-center">
+                    <p className="text-sm text-slate-400 font-medium">No open pull requests</p>
+                    <p className="text-xs text-slate-600 mt-1">
+                      {selectedRepo.full_name} has no open PRs right now.
+                    </p>
+                  </div>
+                  {/* How to create a PR hint */}
+                  <div className="w-full max-w-sm bg-[#161625] border border-[#2a2a3e] rounded-xl p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
+                      <Info className="w-3.5 h-3.5 text-indigo-400" />
+                      To see VibeShift in action:
+                    </div>
+                    <ol className="text-xs text-slate-500 space-y-1.5 list-decimal list-inside">
+                      <li>Create a new branch in <span className="text-slate-300 font-mono">{selectedRepo.name}</span></li>
+                      <li>Make any code change and push it</li>
+                      <li>Open a Pull Request on GitHub</li>
+                      <li>Come back here and click <span className="text-indigo-400 font-semibold">Analyse</span></li>
+                    </ol>
+                    <a
+                      href={`https://github.com/${selectedRepo.full_name}/compare`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                    >
+                      <GitMerge className="w-3.5 h-3.5" />
+                      Open a PR on GitHub →
+                    </a>
+                  </div>
+                  {/* Try demo instead */}
+                  <div className="text-xs text-slate-600">
+                    Or{" "}
+                    <Link href="/pr/pr-1" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+                      try the demo PR viewer
+                    </Link>
+                    {" "}to see how violations look.
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-slate-600 text-sm">
+                  <GitBranch className="w-8 h-8 mx-auto mb-2 text-slate-700" />
+                  Select a repository to see its pull requests
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
@@ -359,7 +458,7 @@ export default function DashboardPage() {
                               href={`/analyze/${owner}/${repoName}/${pr.number}`}
                               className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5"
                             >
-                              View <ChevronRight className="w-3 h-3" />
+                              View report <ChevronRight className="w-3 h-3" />
                             </Link>
                           </>
                         ) : (
@@ -378,10 +477,15 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {/* Violation chips after analysis */}
                     {result && result.violationCount > 0 && (
                       <div className="mt-2 flex items-center gap-2">
-                        <span className="text-[11px] text-slate-500">{result.violationCount} violation(s) detected</span>
+                        <span className="text-[11px] text-red-400 font-medium">{result.violationCount} violation(s) detected</span>
+                      </div>
+                    )}
+                    {result && result.violationCount === 0 && (
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <span className="text-[11px] text-emerald-400 font-medium">Clean — no violations</span>
                       </div>
                     )}
                   </div>
@@ -392,40 +496,62 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Agent Timeline (static — represents recent run) */}
+      {/* Agent Execution Timeline */}
       <div className="bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl p-4">
-        <h2 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-slate-200 mb-1 flex items-center gap-2">
           <Zap className="w-3.5 h-3.5 text-indigo-400" />
-          Agent Execution Timeline — Last Analysis
+          Agent Execution Timeline
+          {agentTimeline ? (
+            <span className="text-[11px] font-normal text-emerald-400 ml-1">— Last Analysis</span>
+          ) : (
+            <span className="text-[11px] font-normal text-slate-600 ml-1">— No analysis run yet</span>
+          )}
         </h2>
-        <div className="space-y-3">
-          {[
-            { name: "Pattern Drift", ms: 2847, color: "#f59e0b", violations: 3 },
-            { name: "Security Sentinel", ms: 3412, color: "#ef4444", violations: 1 },
-            { name: "Test Gap Finder", ms: 2201, color: "#8b5cf6", violations: 1 },
-            { name: "Dependency Guardian", ms: 1923, color: "#3b82f6", violations: 1 },
-          ].map((agent) => (
-            <div key={agent.name} className="flex items-center gap-3">
-              <span className="w-36 text-xs text-slate-400 shrink-0">{agent.name}</span>
-              <div className="flex-1 h-5 bg-[#161625] rounded-full overflow-hidden relative">
-                <div
-                  className="h-full rounded-full flex items-center justify-end pr-2 transition-all"
-                  style={{
-                    width: `${(agent.ms / 4000) * 100}%`,
-                    background: `${agent.color}30`,
-                    borderRight: `2px solid ${agent.color}`,
-                  }}
-                >
-                  <span className="text-[10px] font-mono" style={{ color: agent.color }}>
-                    {agent.ms}ms
-                  </span>
+        {!agentTimeline && (
+          <p className="text-xs text-slate-600 mb-3">
+            Select a repo with an open PR and click <span className="text-indigo-400">Analyse</span> to see real agent timings here.
+          </p>
+        )}
+        <div className="space-y-3 mt-3">
+          {(agentTimeline ?? [
+            { name: "Pattern Drift", executionMs: 0, violations: 0 },
+            { name: "Security Sentinel", executionMs: 0, violations: 0 },
+            { name: "Test Gap Finder", executionMs: 0, violations: 0 },
+            { name: "Dependency Guardian", executionMs: 0, violations: 0 },
+          ]).map((agent, i) => {
+            const colors = ["#f59e0b", "#ef4444", "#8b5cf6", "#3b82f6"];
+            const color = colors[i % colors.length];
+            const maxMs = agentTimeline
+              ? Math.max(...agentTimeline.map((a) => a.executionMs), 1)
+              : 1;
+            const pct = agentTimeline ? Math.max(4, (agent.executionMs / maxMs) * 100) : 4;
+            return (
+              <div key={agent.name} className="flex items-center gap-3">
+                <span className="w-36 text-xs text-slate-400 shrink-0">{agent.name}</span>
+                <div className="flex-1 h-5 bg-[#161625] rounded-full overflow-hidden relative">
+                  <div
+                    className="h-full rounded-full flex items-center justify-end pr-2 transition-all"
+                    style={{
+                      width: `${pct}%`,
+                      background: agentTimeline ? `${color}30` : "#1e1e2e",
+                      borderRight: agentTimeline ? `2px solid ${color}` : "none",
+                    }}
+                  >
+                    {agentTimeline && (
+                      <span className="text-[10px] font-mono" style={{ color }}>
+                        {agent.executionMs}ms
+                      </span>
+                    )}
+                  </div>
                 </div>
+                <span className="text-xs font-semibold w-20 text-right" style={{ color: agentTimeline ? color : "#374151" }}>
+                  {agentTimeline
+                    ? `${agent.violations} issue${agent.violations !== 1 ? "s" : ""}`
+                    : "—"}
+                </span>
               </div>
-              <span className="text-xs font-semibold w-16 text-right" style={{ color: agent.color }}>
-                {agent.violations} issue{agent.violations !== 1 ? "s" : ""}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
