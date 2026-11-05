@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = "https://vibeshift.vercel.app";
+  const base = "https://vibeshift-red.vercel.app";
 
   return [
     {

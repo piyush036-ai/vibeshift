@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/auth/"],
     },
-    sitemap: "https://vibeshift.vercel.app/sitemap.xml",
+    sitemap: "https://vibeshift-red.vercel.app/sitemap.xml",
   };
 }
