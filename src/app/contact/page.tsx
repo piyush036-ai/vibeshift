@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Mail, Github, Shield } from "lucide-react";
+import { Mail, GitBranch, Shield } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Contact — VibeShift",
@@ -46,7 +46,7 @@ export default function ContactPage() {
             className="flex items-center gap-4 p-5 bg-[#0f0f1a] border border-[#1e1e2e] hover:border-indigo-500/30 rounded-xl transition-all group"
           >
             <div className="w-10 h-10 rounded-lg bg-slate-500/10 border border-slate-500/20 flex items-center justify-center shrink-0">
-              <Github className="w-5 h-5 text-slate-400" />
+              <GitBranch className="w-5 h-5 text-slate-400" />
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-200 group-hover:text-indigo-300 transition-colors">GitHub Issues</p>
