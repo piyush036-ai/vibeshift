@@ -4,6 +4,7 @@
 
 VibeShift is a production-ready AI guardrail for AI-assisted development teams. It connects to your GitHub account, learns your repository's DNA — architecture rules, coding conventions, approved patterns — then deploys **four parallel AI subagents** to validate every Pull Request in real time before it corrupts your codebase.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript)](https://typescriptlang.org)
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com)
