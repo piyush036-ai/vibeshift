@@ -220,7 +220,7 @@ export default function LandingPage() {
           {/* Tag */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-indigo-300 text-xs font-medium mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 agent-pulse" />
-            Powered by IBM Bob 2.0 × Granite AI
+            AI Code Integrity Gate
           </div>
 
           {/* Headline */}
@@ -310,7 +310,7 @@ export default function LandingPage() {
 
             <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
               <Zap className="w-3 h-3 text-indigo-400" />
-              Analysis completed in 3.2s · Merge blocked · 4 agents · IBM Bob powered
+              Analysis completed in 3.2s · Merge blocked · 4 agents
             </div>
           </div>
         </div>
@@ -369,8 +369,8 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl font-bold mb-3">Four agents. One decision.</h2>
           <p className="text-slate-400 text-sm mb-10 max-w-xl mx-auto">
-            Each agent is a specialized IBM Bob subagent running Granite models. They run in
-            parallel, each with a different lens on your PR.
+            Each agent is a specialized AI subagent with a different lens on your PR. They run in
+            parallel to give you a fast, thorough analysis.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {AGENT_STEPS.map((agent) => {
@@ -416,16 +416,13 @@ export default function LandingPage() {
               Connect GitHub — it&apos;s free
             </button>
           )}
-          <p className="text-xs text-slate-600 mt-4">
-            Built on IBM Bob 2.0 · Granite AI · Hackathon prototype
-          </p>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="border-t border-[#1e1e2e] py-6 px-6 text-center">
         <p className="text-xs text-slate-600">
-          © 2025 VibeShift — IBM Bob 2.0 Hackathon · lablab.ai · Built with ❤️ and Granite
+          © 2025 VibeShift
         </p>
       </footer>
     </div>

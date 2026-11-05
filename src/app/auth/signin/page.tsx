@@ -49,9 +49,6 @@ export default function SignInPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-4">
-          Built with IBM Bob 2.0 × Granite AI
-        </p>
       </div>
     </div>
   );
