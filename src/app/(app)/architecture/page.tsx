@@ -52,8 +52,8 @@ export default function ArchitecturePage() {
 
           {/* Orchestrator */}
           <rect x="420" y="170" width="140" height="100" rx="10" fill="#1a0f32" stroke="#8b5cf6" strokeWidth="1.5"/>
-          <text x="490" y="205" textAnchor="middle" fill="#e2e8f0" fontSize="12" fontWeight="600">IBM Bob</text>
-          <text x="490" y="222" textAnchor="middle" fill="#8b5cf6" fontSize="10">Orchestrator</text>
+          <text x="490" y="205" textAnchor="middle" fill="#e2e8f0" fontSize="12" fontWeight="600">Orchestrator</text>
+          <text x="490" y="222" textAnchor="middle" fill="#8b5cf6" fontSize="10">AI Analysis</text>
           <text x="490" y="238" textAnchor="middle" fill="#64748b" fontSize="10">Project DNA</text>
           <text x="490" y="254" textAnchor="middle" fill="#64748b" fontSize="10">Rule Graph</text>
 
@@ -115,7 +115,7 @@ export default function ArchitecturePage() {
             { x: 140, label: "DNA Extract", sub: "ARCH + CONTRIBUTING", color: "#8b5cf6" },
             { x: 260, label: "4 Agents Spawn", sub: "Parallel execution", color: "#f59e0b" },
             { x: 380, label: "Results Merge", sub: "Score calculation", color: "#3b82f6" },
-            { x: 500, label: "Auto-Fix Gen", sub: "IBM Bob + Granite", color: "#10b981" },
+            { x: 500, label: "Auto-Fix Gen", sub: "AI remediation", color: "#10b981" },
             { x: 620, label: "GO / NO-GO", sub: "Decision output", color: "#ef4444" },
             { x: 700, label: "GitHub Update", sub: "Comment + Status", color: "#10b981" },
           ].map((step, i) => (
@@ -178,7 +178,7 @@ export default function ArchitecturePage() {
           {/* VibeShift */}
           <rect x="440" y="105" width="120" height="100" rx="8" fill="#1a0f32" stroke="#8b5cf6" strokeWidth="1.5"/>
           <text x="500" y="133" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="600">VibeShift</text>
-          <text x="500" y="150" textAnchor="middle" fill="#8b5cf6" fontSize="10">IBM Bob 2.0</text>
+          <text x="500" y="150" textAnchor="middle" fill="#8b5cf6" fontSize="10">AI Engine</text>
           <text x="500" y="166" textAnchor="middle" fill="#64748b" fontSize="10">4 Agents</text>
           <text x="500" y="180" textAnchor="middle" fill="#64748b" fontSize="10">Score Engine</text>
           <text x="500" y="194" textAnchor="middle" fill="#64748b" fontSize="10">Auto-Fix Gen</text>

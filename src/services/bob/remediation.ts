@@ -1,7 +1,6 @@
 /**
  * Auto Remediation Engine
  * Generates corrected code patches for detected violations.
- * In production: uses IBM Bob + Granite to generate context-aware fixes.
  */
 
 import type { Violation } from "@/lib/types";

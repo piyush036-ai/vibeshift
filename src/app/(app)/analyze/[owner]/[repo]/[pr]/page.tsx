@@ -150,7 +150,7 @@ function downloadReport(
   const medium = violations.filter((v) => v.severity === "medium").length;
   const penalty = critical * 20 + high * 10 + medium * 3;
   const score = Math.max(0, 100 - penalty);
-  let r = `${sep}\n  VIBESHIFT — AI CODE INTEGRITY REPORT\n  Powered by IBM Bob 2.0 × Granite AI\n${sep}\n\n`;
+  let r = `${sep}\n  VIBESHIFT — AI CODE INTEGRITY REPORT\n${sep}\n\n`;
   r += `Generated : ${now}\nRepository: ${owner}/${repo}\nPR Number : #${detail.number}\nPR Title  : ${detail.title}\nAuthor    : ${detail.user.login}\nBranch    : ${detail.head.ref} → ${detail.base.ref}\n`;
   r += `Files     : ${detail.changed_files} changed  +${detail.additions} / -${detail.deletions}\n\n`;
   r += `${line}\n  INTEGRITY SCORE & DECISION\n${line}\n`;
@@ -161,7 +161,7 @@ function downloadReport(
     r += `\n${i + 1}. [${v.severity.toUpperCase()}] ${v.rule}\n   File: ${v.file}:${v.line}\n   ${v.message}\n   Fix : ${v.suggestion}\n`;
     if (v.originalCode) r += `   Code: ${v.originalCode.slice(0, 120)}\n`;
   });
-  r += `\n${sep}\n  END OF REPORT — VibeShift · IBM Bob 2.0 Hackathon\n${sep}\n`;
+  r += `\n${sep}\n  END OF REPORT — VibeShift\n${sep}\n`;
   const blob = new Blob([r], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

@@ -1,8 +1,7 @@
 /**
  * Real diff analyser
  * Runs pattern/security/dependency/test checks on actual GitHub PR file diffs.
- * No IBM Bob API key needed — uses deterministic regex + heuristic analysis
- * on the real patch text. When IBM Bob API is available, swap the inner logic.
+ * Uses deterministic regex + heuristic analysis on the real patch text.
  */
 
 import type { Violation } from "@/lib/types";

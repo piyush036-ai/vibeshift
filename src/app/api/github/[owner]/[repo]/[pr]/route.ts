@@ -55,7 +55,7 @@ export async function POST(
       extractProjectDNA(token, owner, repo),
     ]);
 
-    // Run the 4 IBM Bob subagents in parallel against real diff
+    // Run the 4 subagents in parallel against real diff
     const result = await orchestratePRAnalysis({
       files,
       owner,
@@ -116,7 +116,7 @@ export async function POST(
       const commentLines = [
         `## 🛡️ VibeShift Analysis — PR #${prNumber}`,
         ``,
-        `> Powered by **IBM Bob 2.0 × Granite AI** · [View full report](${appUrl}/analyze/${owner}/${repo}/${prNumber})`,
+        `> [View full report](${appUrl}/analyze/${owner}/${repo}/${prNumber})`,
         ``,
         `| Metric | Value |`,
         `|--------|-------|`,
@@ -163,7 +163,7 @@ export async function POST(
 
       commentLines.push(``);
       commentLines.push(`---`);
-      commentLines.push(`*[VibeShift](${appUrl}) — IBM Bob 2.0 Hackathon · Session: \`${result.bobSessionId}\`*`);
+      commentLines.push(`*[VibeShift](${appUrl}) · Session: \`${result.bobSessionId}\`*`);
 
       await postPRComment(token, owner, repo, prNumber, commentLines.join("\n"));
     } catch { /* Comment posting may fail without write access — non-fatal */ }

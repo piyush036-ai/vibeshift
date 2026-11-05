@@ -153,7 +153,7 @@ export async function POST(req: Request) {
       const critical = allViolations.filter((v) => v.severity === "critical").length;
       const lines = [
         `## 🛡️ VibeShift — PR #${prNumber}`,
-        `> Automated analysis · IBM Bob 2.0 × Granite AI`,
+        `> Automated analysis · VibeShift`,
         ``,
         `| Score | Decision | Violations | Time |`,
         `|-------|----------|------------|------|`,

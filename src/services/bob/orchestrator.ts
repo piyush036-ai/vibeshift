@@ -1,5 +1,5 @@
 /**
- * IBM Bob Orchestrator — Real Implementation
+ * PR Analysis Orchestrator — Real Implementation
  * Runs 4 parallel subagents against actual GitHub PR diff files.
  * Each subagent receives the raw GHPRFile[] and analyses the real patch text.
  */

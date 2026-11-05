@@ -420,10 +420,14 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#1e1e2e] py-6 px-6 text-center">
-        <p className="text-xs text-slate-600">
-          © 2025 VibeShift
-        </p>
+      <footer className="border-t border-[#1e1e2e] py-8 px-6 text-center">
+        <div className="flex items-center justify-center gap-5 mb-3">
+          <Link href="/about" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">About</Link>
+          <Link href="/privacy" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Privacy Policy</Link>
+          <Link href="/contact" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Contact</Link>
+          <a href="https://github.com/piyush036-ai/vibeshift" target="_blank" rel="noopener noreferrer" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">GitHub</a>
+        </div>
+        <p className="text-xs text-slate-700">© 2025 VibeShift</p>
       </footer>
     </div>
   );

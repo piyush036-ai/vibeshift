@@ -60,7 +60,7 @@ const VIBESHIFT_COMMENT = `## 🛡️ VibeShift Analysis — PR #142
 Run \`vibeshift fix pr-142\` or click **Apply Fixes** in the VibeShift dashboard.
 
 ---
-*Powered by [VibeShift](https://vibeshift.dev) — IBM Bob 2.0 × Granite AI*`;
+*Powered by [VibeShift](https://vibeshift.dev)*`;
 
 type SimStep = {
   id: string;

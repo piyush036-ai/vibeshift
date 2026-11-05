@@ -161,7 +161,7 @@ function ViolationCard({ v, expanded }: { v: Violation; expanded: boolean }) {
                       <div className="flex items-center justify-between px-3 py-1.5 bg-emerald-500/5 border-b border-emerald-500/20">
                         <div className="flex items-center gap-1.5 text-[11px] text-emerald-400">
                           <Plus className="w-3 h-3" />
-                          Auto-fix (IBM Bob generated)
+                          Auto-fix (AI generated)
                         </div>
                         <CopyButton text={v.fixedCode} />
                       </div>
@@ -232,7 +232,6 @@ function generateReport(pr: (typeof MOCK_PULL_REQUESTS)[0]): string {
   let report = "";
   report += `${sep}\n`;
   report += `  VIBESHIFT — AI CODE INTEGRITY REPORT\n`;
-  report += `  Powered by IBM Bob 2.0 × Granite AI\n`;
   report += `${sep}\n\n`;
 
   report += `Generated : ${now}\n`;
@@ -294,7 +293,7 @@ function generateReport(pr: (typeof MOCK_PULL_REQUESTS)[0]): string {
   report += pr.labels.join(", ") + "\n";
 
   report += `\n${sep}\n`;
-  report += `  END OF REPORT — VibeShift · IBM Bob 2.0 Hackathon · lablab.ai\n`;
+  report += `  END OF REPORT — VibeShift\n`;
   report += `${sep}\n`;
 
   return report;
