@@ -2,14 +2,11 @@
 
 > **Stop AI-induced architectural drift before it merges.**
 
-VibeShift is a production-ready AI guardrail for AI-assisted development teams. It connects to your GitHub account, learns your repository's DNA — architecture rules, coding conventions, approved patterns — then deploys **four parallel IBM Bob subagents** to validate every Pull Request in real time before it corrupts your codebase.
+VibeShift is a production-ready AI guardrail for AI-assisted development teams. It connects to your GitHub account, learns your repository's DNA — architecture rules, coding conventions, approved patterns — then deploys **four parallel AI subagents** to validate every Pull Request in real time before it corrupts your codebase.
 
-[![IBM Bob 2.0](https://img.shields.io/badge/IBM%20Bob-2.0-0062ff?style=flat-square&logo=ibm)](https://ibm.com)
-[![Granite AI](https://img.shields.io/badge/Granite-3.3B_Instruct-8a3ffc?style=flat-square&logo=ibm)](https://ibm.com/granite)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript)](https://typescriptlang.org)
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com)
-[![Hackathon](https://img.shields.io/badge/IBM%20Bob%202.0-Hackathon-ff6b35?style=flat-square)](https://lablab.ai)
 
 ---
 
@@ -34,7 +31,7 @@ VibeShift is a **live PR integrity gate** that:
 
 1. **Connects to your real GitHub account** via OAuth — sees your actual repos and open PRs
 2. **Learns your Project DNA** by reading `ARCHITECTURE.md`, `CONTRIBUTING.md`, and `.vibeshift.yml`
-3. **Spawns 4 parallel AI agents** via IBM Bob 2.0 to inspect every changed file from four angles simultaneously
+3. **Spawns 4 parallel AI agents** to inspect every changed file from four angles simultaneously
 4. **Produces a scored Go/No-Go decision** with full per-line violation details
 5. **Posts directly to GitHub** — PR comment, commit status checks, and merge block
 
@@ -195,8 +192,8 @@ Analytics automatically switch from demo data to real data after the first analy
 |-------|------------|---------|
 | Framework | Next.js App Router | 16 |
 | Language | TypeScript | 5 |
-| AI Orchestration | IBM Bob 2.0 | — |
-| AI Models | IBM Granite 3.3B Instruct | — |
+| AI Orchestration | Custom Agent Orchestrator | — |
+| AI Models | Granite 3.3B Instruct | — |
 | Authentication | NextAuth.js v5 (GitHub OAuth) | 5 |
 | Styling | Tailwind CSS | 4 |
 | Charts | Recharts | 2 |
@@ -266,7 +263,7 @@ vibeshift/
 
 ## Future Scope
 
-- **IBM Granite fine-tuning**: Train on your approved PR corpus for repo-specific rules
+- **Granite fine-tuning**: Train on your approved PR corpus for repo-specific rules
 - **IDE plugin**: VSCode extension that runs VibeShift before you open a PR
 - **Slack / Teams notifications**: Real-time alerts for NO-GO decisions
 - **Multi-language support**: Python, Java, Go, Rust rule sets
@@ -277,5 +274,4 @@ vibeshift/
 
 ---
 
-*Built for the **IBM Bob 2.0 Hackathon** on lablab.ai*
-*Powered by IBM Bob 2.0 × Granite AI × Next.js × Vercel*
+*Powered by Granite AI × Next.js × Vercel*

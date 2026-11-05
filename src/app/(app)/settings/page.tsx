@@ -2,7 +2,6 @@
 import { useSession } from "next-auth/react";
 import {
   User,
-  Key,
   Bell,
   Shield,
   GitBranch,
@@ -91,24 +90,6 @@ export default function SettingsPage() {
         </a>
       </div>
 
-      {/* API Key */}
-      <div className="bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-          <Key className="w-3.5 h-3.5 text-slate-400" />
-          IBM Bob API
-        </h2>
-        <div className="flex items-center gap-3 px-3 py-2.5 bg-[#161625] border border-[#2a2a3e] rounded-lg">
-          <span className="font-mono text-xs text-slate-400 flex-1">
-            bob_prod_***************************
-          </span>
-          <span className="px-1.5 py-0.5 text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded">
-            Active
-          </span>
-        </div>
-        <p className="text-[11px] text-slate-600 mt-2">
-          IBM Bob 2.0 × Granite AI — 4 parallel subagents per analysis
-        </p>
-      </div>
 
       {/* Analysis Rules */}
       <div className="bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl p-5">
