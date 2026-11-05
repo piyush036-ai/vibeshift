@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Mail, GitBranch, Shield } from "lucide-react";
+import { GitBranch, Shield } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Contact — VibeShift",
@@ -27,19 +27,6 @@ export default function ContactPage() {
         <div className="space-y-4">
 
           <a
-            href="mailto:support@vibeshift.dev"
-            className="flex items-center gap-4 p-5 bg-[#0f0f1a] border border-[#1e1e2e] hover:border-indigo-500/30 rounded-xl transition-all group"
-          >
-            <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-              <Mail className="w-5 h-5 text-indigo-400" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-200 group-hover:text-indigo-300 transition-colors">Email</p>
-              <p className="text-xs text-slate-500 mt-0.5">support@vibeshift.dev</p>
-            </div>
-          </a>
-
-          <a
             href="https://github.com/piyush036-ai/vibeshift/issues"
             target="_blank"
             rel="noopener noreferrer"
@@ -58,8 +45,8 @@ export default function ContactPage() {
 
         <div className="mt-10 p-4 bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl">
           <p className="text-xs text-slate-500 leading-relaxed">
-            VibeShift is an open-source project. We typically respond to GitHub issues within 48 hours.
-            For privacy-related requests, please see our{" "}
+            VibeShift is an open-source project. We typically respond to GitHub issues within 24–48 hours.
+              For privacy-related requests, please see our{" "}
             <a href="/privacy" className="text-indigo-400 hover:underline">Privacy Policy</a>.
           </p>
         </div>

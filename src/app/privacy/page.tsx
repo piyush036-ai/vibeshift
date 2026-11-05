@@ -62,7 +62,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-slate-100 mb-3">7. Contact</h2>
-            <p>For privacy questions, contact us at <a href="mailto:support@vibeshift.dev" className="text-indigo-400 hover:underline">support@vibeshift.dev</a> or open an issue on our <a href="https://github.com/piyush036-ai/vibeshift" className="text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">GitHub repository</a>.</p>
+            <p>For privacy questions, open an issue on our <a href="https://github.com/piyush036-ai/vibeshift/issues" className="text-indigo-400 hover:underline" target="_blank" rel="noopener noreferrer">GitHub repository</a>.</p>
           </section>
 
         </div>
