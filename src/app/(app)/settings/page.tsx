@@ -1,5 +1,6 @@
 "use client";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import { useState } from "react";
 import {
   User,
   Bell,
@@ -7,10 +8,18 @@ import {
   GitBranch,
   CheckCircle2,
   ExternalLink,
+  LogOut,
 } from "lucide-react";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
+  const [revoking, setRevoking] = useState(false);
+
+  const handleRevoke = async () => {
+    if (!confirm("Are you sure? This will sign you out and disconnect GitHub.")) return;
+    setRevoking(true);
+    await signOut({ callbackUrl: "/" });
+  };
 
   return (
     <div className="max-w-screen-md mx-auto px-4 py-8 space-y-6">
@@ -147,10 +156,12 @@ export default function SettingsPage() {
           Revoking access will disconnect GitHub integration and sign you out.
         </p>
         <button
-          disabled
-          className="px-3 py-1.5 border border-red-500/30 text-red-400 text-xs rounded-lg opacity-50 cursor-not-allowed"
+          onClick={handleRevoke}
+          disabled={revoking}
+          className="flex items-center gap-1.5 px-3 py-1.5 border border-red-500/30 hover:border-red-500/60 hover:bg-red-500/10 text-red-400 text-xs rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Revoke GitHub Access
+          <LogOut className="w-3 h-3" />
+          {revoking ? "Signing out…" : "Revoke GitHub Access"}
         </button>
       </div>
     </div>
