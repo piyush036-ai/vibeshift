@@ -427,7 +427,7 @@ export default function LandingPage() {
           <Link href="/contact" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Contact</Link>
           <a href="https://github.com/piyush036-ai/vibeshift" target="_blank" rel="noopener noreferrer" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">GitHub</a>
         </div>
-        <p className="text-xs text-slate-700">© 2025 VibeShift</p>
+        <p className="text-xs text-slate-700">© {new Date().getFullYear()} VibeShift</p>
       </footer>
     </div>
   );

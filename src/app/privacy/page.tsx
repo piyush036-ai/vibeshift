@@ -6,11 +6,12 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPage() {
+  const lastUpdated = new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-slate-100">
       <div className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-slate-500 text-sm mb-10">Last updated: January 2025</p>
+        <p className="text-slate-500 text-sm mb-10">Last updated: {lastUpdated}</p>
 
         <div className="space-y-8 text-sm text-slate-300 leading-relaxed">
 
